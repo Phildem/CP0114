@@ -29,6 +29,7 @@ Release history
 ................................................................................................................
 Version Date      Author    Comment
 1.0     06/04/21  Phildem   Tested OK
+1.1     09/04/21  Phildem   Freq computation improvment
 */
 
 /**************************************************************************
@@ -67,7 +68,9 @@ Version Date      Author    Comment
 
 #include <FreqCount.h>
 
-#define kFCorrection -0.013  // Correction for Arduino clock
+#define kFDIv         256.0   // Prescaler ratio
+#define kIF           10.7    // Intermediate frequency value in MHZ, will be substracted to measured value
+#define kFCorrection  -0.009  // Correction for Arduino clock in %
 
 // Display global
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -105,8 +108,12 @@ void loop() {
     digitalWrite(LED_BUILTIN, HIGH);        // Light internal led to indicate measure
     
     unsigned long Fin = FreqCount.read();
-    float Freq=(Fin-41796.875+kFCorrection)/3906.25;  // Compute to display real freq in MHz
-    Freq+=kFCorrection;
+    float Freq=((float)Fin*kFDIv)/1000000;  // Compute to display measuring freq in MHz
+    
+    float Adj=(Freq*kFCorrection)/100;      // Compute % to correct Arduino Osc error
+    Freq+=Adj;
+    
+    Freq-=kIF;                              // Remove IF
     
     // Clear the buffer
     display.clearDisplay();
